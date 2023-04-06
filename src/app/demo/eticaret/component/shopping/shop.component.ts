@@ -1,5 +1,5 @@
 import {
-    Component, ContentChild, Input, OnInit
+    Component, OnInit
 } from '@angular/core';
 import {ConfirmationService, MenuItem, MessageService} from "primeng/api";
 import {eProdoct} from "../../../model/eprodoct";
@@ -8,6 +8,8 @@ import {Store} from "@ngrx/store";
 import {shopDecrement} from "../../../../../store/shop/shop.actions";
 import {ShopService} from "../../../service/shop.service";
 import {BuyService} from "../../../service/buy.service";
+import {parse} from "@typescript-eslint/parser";
+import {ShopUser} from "../../../model/ShopUser";
 
 
 @Component({
@@ -22,18 +24,18 @@ export class ShopComponent implements OnInit {
 
     productDialog!: boolean;
 
-    products: eProdoct[] = [];
+    products: ShopUser[] = [];
     product!: eProdoct;
     selectedProducts!: eProdoct [];
     submitted!: boolean;
     statuses!: any[];
     totalPrice: number = 0;
     productAmount: number = 0;
-    shopAmount: number=1;
+    shopAmount: number = 1;
 
     constructor(private store: Store, private shopService: ShopService, private productService: EproductsService,
                 private messageService: MessageService, private confirmationService: ConfirmationService,
-                private buyService:BuyService) {
+                private buyService: BuyService) {
 
 
         this.updateProductList();
@@ -87,45 +89,72 @@ export class ShopComponent implements OnInit {
     }
 
 
-    amountControl(product: any) {
-
+    amountControl(products: any) {
+        console.log("products", products);
+        let shopUser!:ShopUser;
         // @ts-ignore
-        let shopAmount=document.getElementById("vertical1").value;
-       product.shopAmount=shopAmount;
-        console.log(product);
+        let userId = Number(JSON.parse(localStorage.getItem('UserId')));
+        // @ts-ignore
+
+       this.updateTotalPrice();
+
+        shopUser ={
+            product:products.product,
+            user:{
+                userId:userId
+            },
+            shopUserId:products.id,
+            shopAmount:products.shopAmount
+        }
+        console.log(shopUser);
 
 
-
-
-
+        this.shopService.putShopUser(shopUser);
+    }
+    updateTotalPrice(){
+        this.totalPrice=0;
+        this.products.forEach(value => {
+            this.totalPrice+=value.shopAmount!*value.product.price;
+        })
     }
 
     updateProductList() {
+
+        // @ts-ignore
+        let userId = Number(JSON.parse(localStorage.getItem('UserId')));
         this.products.splice(0);
-        this.shopService.getAllShopById(1).subscribe((response) => {
-
-            console.log(response);
-            response.forEach((value: any) => {
-                this.product = value;
-                this.products.push(this.product);
-            });
-
+        this.shopService.getAllShopById(userId).subscribe(data=>{
+            data.forEach(value => {
+                this.totalPrice+=value.product.price*value.shopAmount!;
+            })
+            this.products=data;
         });
-
     }
 
     buySelectedProducts() {
         this.selectedProducts.forEach(value => {
             this.buyService.addShop(value);
         });
-
-
     }
 
 
     testM(products: any) {
-        console.log("products",products);
+        console.log("products", products.product);
+        let shopUser!:ShopUser;
+        // @ts-ignore
+        let userId = Number(JSON.parse(localStorage.getItem('UserId')));
+        // @ts-ignore
 
+        shopUser ={
+            shopUserId:products.id,
+            product:products.product,
+            user:{
+                userId:userId
+            },
+            shopAmount:products.shopAmount
+        }
+        console.log(shopUser);
+        // this.shopService.putShopUser(shopUser);
     }
 }
 
